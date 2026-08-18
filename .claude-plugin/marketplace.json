@@ -1,0 +1,13 @@
+{
+  "name": "text-efficiency",
+  "owner": {
+    "name": "Artem"
+  },
+  "plugins": [
+    {
+      "name": "texteff",
+      "source": "./",
+      "description": "Audit repository docs and comments for context debt via /texteff:audit."
+    }
+  ]
+}

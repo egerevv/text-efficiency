@@ -1,0 +1,5 @@
+{
+  "name": "texteff",
+  "description": "Measure and reduce context debt: audit repository docs and comments for redundant, stale, and low-value text.",
+  "version": "0.1.0"
+}
