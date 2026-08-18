@@ -79,7 +79,7 @@ def test_token_counter_reports_method():
     counter, method = collect.make_token_counter()
     assert method in ("tiktoken", "approximate")
     assert counter("hello world, this is text") > 0
-    assert counter("") >= 0 or True  # must not raise
+    assert counter("") >= 0
 
 
 def test_build_inventory_fixture():
@@ -95,6 +95,7 @@ def test_build_inventory_fixture():
     assert ids == sorted(set(ids))
     assert inv["coverage"]["comment_tokens_included"] <= \
         inv["coverage"]["comment_tokens_total"]
+    assert inv["coverage"]["global_cap_applied"] is False
 
 
 def test_per_file_comment_cap(tmp_path):
@@ -115,3 +116,15 @@ def test_cli_outputs_json():
     inv = json.loads(out.stdout)
     assert inv["token_method"] in ("tiktoken", "approximate")
     assert len(inv["items"]) > 0
+
+
+def test_global_cap_recomputes_coverage(tmp_path, monkeypatch):
+    (tmp_path / "a.md").write_text("# A\n\n" + "alpha words here " * 50)
+    (tmp_path / "b.py").write_text("# " + "beta comment words " * 30)
+    monkeypatch.setattr(collect, "MAX_TOTAL_TOKENS", 10)
+    inv = collect.build_inventory(tmp_path)
+    kept = sum(i["tokens"] for i in inv["items"])
+    assert kept <= 10
+    cov = inv["coverage"]
+    assert cov["global_cap_applied"] is True
+    assert cov["doc_tokens_included"] + cov["comment_tokens_included"] == kept

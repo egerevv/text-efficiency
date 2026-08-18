@@ -197,7 +197,9 @@ def build_inventory(root):
         elif ext and ext not in DOC_EXTS:
             skipped_exts.add(ext)
 
+    global_cap_applied = False
     if doc_total + comment_included > MAX_TOTAL_TOKENS:
+        global_cap_applied = True
         kept, budget = [], MAX_TOTAL_TOKENS
         for item in sorted(items, key=lambda i: -i["tokens"]):
             if item["tokens"] <= budget:
@@ -205,15 +207,21 @@ def build_inventory(root):
                 budget -= item["tokens"]
         items = sorted(kept, key=lambda i: i["id"])
 
+    # Compute what's actually included from the final items list
+    doc_tokens_included = sum(i["tokens"] for i in items if i["kind"] == "doc-section")
+    comment_tokens_included = sum(i["tokens"] for i in items if i["kind"] == "comment")
+
     return {
         "repo": str(root),
         "token_method": method,
         "items": items,
         "coverage": {
             "doc_tokens": doc_total,
+            "doc_tokens_included": doc_tokens_included,
             "comment_tokens_total": comment_total,
-            "comment_tokens_included": comment_included,
+            "comment_tokens_included": comment_tokens_included,
             "comment_files_capped": capped_files,
+            "global_cap_applied": global_cap_applied,
         },
         "skipped_extensions": sorted(skipped_exts),
     }
