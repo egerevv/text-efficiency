@@ -4,7 +4,10 @@
 Usage: python3 collect.py REPO_PATH [--output FILE]
 Stdlib only; tiktoken is used when importable, else tokens ~= chars/4.
 """
+import argparse
+import json
 import re
+import sys
 from pathlib import Path
 
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)$")
@@ -27,6 +30,9 @@ LINE_MARKERS = {
 BLOCK_EXTS = {".js", ".jsx", ".ts", ".tsx", ".go", ".rs", ".java",
               ".c", ".h", ".cpp", ".hpp", ".cc"}
 BLOCK_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
+
+MAX_COMMENT_TOKENS_PER_FILE = 2_000
+MAX_TOTAL_TOKENS = 150_000
 
 
 def split_markdown_sections(text):
@@ -121,3 +127,114 @@ def extract_comments(text, ext):
                             "text": body})
     return sorted([b for b in out if b["text"]],
                   key=lambda b: b["start_line"])
+
+
+def make_token_counter():
+    """Return (count_fn, method). Uses tiktoken when available."""
+    try:
+        import tiktoken
+        enc = tiktoken.get_encoding("cl100k_base")
+        return (lambda t: len(enc.encode(t))), "tiktoken"
+    except Exception:
+        return (lambda t: max(1, len(t) // 4)), "approximate"
+
+
+def build_inventory(root):
+    root = Path(root).resolve()
+    count, method = make_token_counter()
+    items, capped_files, skipped_exts = [], [], set()
+    next_id = 0
+    doc_total = comment_total = comment_included = 0
+
+    for path in iter_files(root):
+        rel = path.relative_to(root).as_posix()
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        ext = path.suffix.lower()
+
+        if is_doc_file(path, root):
+            if ext == ".md":
+                sections = split_markdown_sections(text)
+            else:
+                body = text.strip()
+                sections = ([{"heading": None, "start_line": 1,
+                              "end_line": text.count("\n") + 1,
+                              "text": body}] if body else [])
+            for s in sections:
+                tokens = count(s["text"])
+                doc_total += tokens
+                items.append({"id": next_id, "path": rel,
+                              "kind": "doc-section",
+                              "heading": s["heading"],
+                              "start_line": s["start_line"],
+                              "end_line": s["end_line"],
+                              "text": s["text"], "tokens": tokens})
+                next_id += 1
+
+        elif ext in LINE_MARKERS or ext in BLOCK_EXTS:
+            budget = MAX_COMMENT_TOKENS_PER_FILE
+            capped = False
+            for block in extract_comments(text, ext):
+                tokens = count(block["text"])
+                comment_total += tokens
+                if tokens <= budget:
+                    budget -= tokens
+                    comment_included += tokens
+                    items.append({"id": next_id, "path": rel,
+                                  "kind": "comment", "heading": None,
+                                  "start_line": block["start_line"],
+                                  "end_line": block["end_line"],
+                                  "text": block["text"],
+                                  "tokens": tokens})
+                    next_id += 1
+                else:
+                    capped = True
+            if capped:
+                capped_files.append(rel)
+
+        elif ext and ext not in DOC_EXTS:
+            skipped_exts.add(ext)
+
+    if doc_total + comment_included > MAX_TOTAL_TOKENS:
+        kept, budget = [], MAX_TOTAL_TOKENS
+        for item in sorted(items, key=lambda i: -i["tokens"]):
+            if item["tokens"] <= budget:
+                kept.append(item)
+                budget -= item["tokens"]
+        items = sorted(kept, key=lambda i: i["id"])
+
+    return {
+        "repo": str(root),
+        "token_method": method,
+        "items": items,
+        "coverage": {
+            "doc_tokens": doc_total,
+            "comment_tokens_total": comment_total,
+            "comment_tokens_included": comment_included,
+            "comment_files_capped": capped_files,
+        },
+        "skipped_extensions": sorted(skipped_exts),
+    }
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("repo", help="path to the repository to inventory")
+    parser.add_argument("--output", help="write JSON here instead of stdout")
+    args = parser.parse_args(argv)
+    root = Path(args.repo)
+    if not root.is_dir():
+        parser.error(f"not a directory: {args.repo}")
+    payload = json.dumps(build_inventory(root), indent=1)
+    if args.output:
+        Path(args.output).write_text(payload, encoding="utf-8")
+        print(f"wrote inventory to {args.output}")
+    else:
+        print(payload)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

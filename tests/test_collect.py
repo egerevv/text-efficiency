@@ -1,7 +1,11 @@
 import collect
+import json
+import subprocess
+import sys
 from pathlib import Path
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "bloated-repo"
+SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "collect.py"
 
 
 def test_split_sections_by_heading():
@@ -69,3 +73,45 @@ def test_extract_js_block_comments():
     assert any("inline note" in t for t in texts)
     assert blocks[0]["start_line"] == 1
     assert blocks[0]["end_line"] == 3
+
+
+def test_token_counter_reports_method():
+    counter, method = collect.make_token_counter()
+    assert method in ("tiktoken", "approximate")
+    assert counter("hello world, this is text") > 0
+    assert counter("") >= 0 or True  # must not raise
+
+
+def test_build_inventory_fixture():
+    inv = collect.build_inventory(FIXTURE)
+    kinds = {i["kind"] for i in inv["items"]}
+    assert kinds == {"doc-section", "comment"}
+    paths = {i["path"] for i in inv["items"]}
+    assert "README.md" in paths
+    assert "AGENTS.md" in paths
+    assert "src/app.py" in paths
+    assert "src/utils.js" in paths
+    ids = [i["id"] for i in inv["items"]]
+    assert ids == sorted(set(ids))
+    assert inv["coverage"]["comment_tokens_included"] <= \
+        inv["coverage"]["comment_tokens_total"]
+
+
+def test_per_file_comment_cap(tmp_path):
+    big = "\n".join(f"# unique filler comment line number {i} with extra "
+                    f"words to inflate the token count substantially"
+                    for i in range(600))
+    (tmp_path / "big.py").write_text(big)
+    inv = collect.build_inventory(tmp_path)
+    assert inv["coverage"]["comment_tokens_included"] <= \
+        collect.MAX_COMMENT_TOKENS_PER_FILE
+    assert "big.py" in inv["coverage"]["comment_files_capped"]
+
+
+def test_cli_outputs_json():
+    out = subprocess.run(
+        [sys.executable, str(SCRIPT), str(FIXTURE)],
+        capture_output=True, text=True, check=True)
+    inv = json.loads(out.stdout)
+    assert inv["token_method"] in ("tiktoken", "approximate")
+    assert len(inv["items"]) > 0
