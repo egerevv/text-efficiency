@@ -1,9 +1,13 @@
+import json
+import subprocess
+import sys
 from pathlib import Path
 
 import collect
 import dedupe
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "bloated-repo"
+SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "dedupe.py"
 
 INSTALL = ("Run npm install to install dependencies, then copy the env "
            "example file and set the API key variable before starting.")
@@ -40,3 +44,18 @@ def test_fixture_readme_agents_duplicate():
     pairs = dedupe.find_duplicates(inv["items"])
     endpoints = {frozenset((p["a_path"], p["b_path"])) for p in pairs}
     assert frozenset(("README.md", "AGENTS.md")) in endpoints
+
+
+def test_cli_output_flag_writes_file(tmp_path):
+    inventory = {"items": [item(0, INSTALL, "README.md"),
+                            item(1, INSTALL, "AGENTS.md")]}
+    inv_path = tmp_path / "inv.json"
+    inv_path.write_text(json.dumps(inventory), encoding="utf-8")
+    out_path = tmp_path / "pairs.json"
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), str(inv_path), "--output", str(out_path)],
+        capture_output=True, text=True, check=True)
+    assert str(out_path) in result.stdout
+    pairs = json.loads(out_path.read_text(encoding="utf-8"))
+    assert len(pairs) == 1
+    assert pairs[0]["similarity"] == 1.0

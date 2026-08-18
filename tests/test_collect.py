@@ -50,6 +50,36 @@ def test_is_doc_file():
     assert not collect.is_doc_file(root / "src" / "app.py", root)
 
 
+def test_is_doc_file_nested_readme_and_contributing_anywhere():
+    root = Path("/repo")
+    assert collect.is_doc_file(root / "pkg" / "README.md", root)
+    assert collect.is_doc_file(root / "sub" / "readme.rst", root)
+    assert collect.is_doc_file(root / "a" / "b" / "CONTRIBUTING.txt", root)
+    assert not collect.is_doc_file(root / "notes" / "ideas.md", root)
+
+
+def test_nested_readme_collected(tmp_path):
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg" / "README.md").write_text(
+        "# Pkg\n\nSome package readme content that is not empty.\n")
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "readme.rst").write_text(
+        "Sub readme content goes here.\n")
+    inv = collect.build_inventory(tmp_path)
+    paths = {i["path"] for i in inv["items"]}
+    assert "pkg/README.md" in paths
+    assert "sub/readme.rst" in paths
+
+
+def test_nested_non_readme_doc_file_skipped_and_recorded(tmp_path):
+    (tmp_path / "notes").mkdir()
+    (tmp_path / "notes" / "ideas.md").write_text("# Ideas\n\nSome idea text.\n")
+    inv = collect.build_inventory(tmp_path)
+    paths = {i["path"] for i in inv["items"]}
+    assert "notes/ideas.md" not in paths
+    assert inv["coverage"]["doc_files_skipped"] == ["notes/ideas.md"]
+
+
 def test_extract_python_line_comments():
     text = "x = 1\n# first line\n# second line\ny = 2\n# alone\n"
     blocks = collect.extract_comments(text, ".py")

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Find near-duplicate text across an inventory produced by collect.py.
 
-Usage: python3 dedupe.py INVENTORY_JSON [--threshold 0.5]
+Usage: python3 dedupe.py INVENTORY_JSON [--threshold 0.5] [--output FILE]
 """
 import argparse
 import json
@@ -50,10 +50,16 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("inventory", help="inventory JSON from collect.py")
     parser.add_argument("--threshold", type=float, default=0.5)
+    parser.add_argument("--output", help="write JSON here instead of stdout")
     args = parser.parse_args(argv)
     inventory = json.loads(Path(args.inventory).read_text(encoding="utf-8"))
     pairs = find_duplicates(inventory["items"], args.threshold)
-    print(json.dumps(pairs, indent=1))
+    payload = json.dumps(pairs, indent=1)
+    if args.output:
+        Path(args.output).write_text(payload, encoding="utf-8")
+        print(f"wrote pairs to {args.output}")
+    else:
+        print(payload)
     return 0
 
 

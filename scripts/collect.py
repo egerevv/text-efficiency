@@ -6,6 +6,7 @@ Stdlib only; tiktoken is used when importable, else tokens ~= chars/4.
 """
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -18,6 +19,7 @@ SKIP_DIRS = {
 }
 DOC_EXTS = {".md", ".rst", ".txt"}
 DOC_ANYWHERE = {"CLAUDE.md", "AGENTS.md"}
+DOC_ANYWHERE_PREFIXES = ("readme", "contributing")
 MAX_FILE_BYTES = 1_000_000
 
 LINE_MARKERS = {
@@ -70,24 +72,37 @@ def split_markdown_sections(text):
 
 
 def iter_files(root):
-    """Yield files under root, skipping SKIP_DIRS and files over 1 MB."""
-    for path in sorted(Path(root).rglob("*")):
-        if not path.is_file():
-            continue
-        if any(part in SKIP_DIRS for part in path.relative_to(root).parts):
-            continue
-        if path.stat().st_size > MAX_FILE_BYTES:
-            continue
-        yield path
+    """Yield files under root, skipping SKIP_DIRS and files over 1 MB.
+
+    Walks with os.walk and prunes SKIP_DIRS from dirnames in place so
+    skipped trees (.git, node_modules, etc.) are never descended into or
+    enumerated, unlike a glob-then-filter approach.
+    """
+    root = Path(root)
+    matches = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS)
+        for filename in sorted(filenames):
+            path = Path(dirpath) / filename
+            if not path.is_file():
+                continue
+            if path.stat().st_size > MAX_FILE_BYTES:
+                continue
+            matches.append(path)
+    matches.sort(key=lambda p: p.relative_to(root).parts)
+    yield from matches
 
 
 def is_doc_file(path, root):
-    """Docs are CLAUDE.md/AGENTS.md anywhere, plus .md/.rst/.txt at the
-    repo root or under docs/."""
+    """Docs are CLAUDE.md/AGENTS.md anywhere, README*/CONTRIBUTING*
+    (case-insensitive) with a doc extension anywhere, plus other
+    .md/.rst/.txt files at the repo root or under docs/."""
     rel = path.relative_to(root)
     if path.name in DOC_ANYWHERE:
         return True
     if path.suffix.lower() in DOC_EXTS:
+        if path.name.lower().startswith(DOC_ANYWHERE_PREFIXES):
+            return True
         return len(rel.parts) == 1 or rel.parts[0] == "docs"
     return False
 
@@ -143,6 +158,7 @@ def build_inventory(root):
     root = Path(root).resolve()
     count, method = make_token_counter()
     items, capped_files, skipped_exts = [], [], set()
+    doc_files_skipped = []
     next_id = 0
     doc_total = comment_total = comment_included = 0
 
@@ -194,7 +210,10 @@ def build_inventory(root):
             if capped:
                 capped_files.append(rel)
 
-        elif ext and ext not in DOC_EXTS:
+        elif ext in DOC_EXTS:
+            doc_files_skipped.append(rel)
+
+        elif ext:
             skipped_exts.add(ext)
 
     global_cap_applied = False
@@ -222,6 +241,7 @@ def build_inventory(root):
             "comment_tokens_included": comment_tokens_included,
             "comment_files_capped": capped_files,
             "global_cap_applied": global_cap_applied,
+            "doc_files_skipped": sorted(doc_files_skipped),
         },
         "skipped_extensions": sorted(skipped_exts),
     }

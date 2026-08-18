@@ -12,22 +12,23 @@ repo. The only file you may write there is `texteff-report.md`.
 ## Pipeline
 
 Let TARGET be the directory to audit (default: current working directory).
+Let `<scratch>` be the session scratchpad directory when one exists,
+otherwise /tmp.
 
 1. **Collect.** Run:
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/collect.py" TARGET --output /tmp/texteff-inventory.json
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/collect.py" TARGET --output <scratch>/texteff-inventory.json
    ```
-
-   (Use the session scratchpad directory instead of /tmp when one exists.)
 
 2. **Dedupe.** Run:
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dedupe.py" /tmp/texteff-inventory.json
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dedupe.py" <scratch>/texteff-inventory.json --output <scratch>/texteff-pairs.json
    ```
 
-3. **Judge.** Read the inventory JSON. Work through items in descending
+3. **Judge.** Read both `<scratch>/texteff-inventory.json` and
+   `<scratch>/texteff-pairs.json`. Work through items in descending
    token order — the biggest items matter most. Classify EVERY doc
    section, and every comment block you can, using the taxonomy below.
    Rules:
@@ -41,6 +42,8 @@ Let TARGET be the directory to audit (default: current working directory).
      Derivable or Constraint, read the code around it.
    - If the inventory shows capped files (`coverage.comment_files_capped`) or `coverage.global_cap_applied` is true,
      analyze what is included and state coverage honestly.
+   - If `coverage.doc_files_skipped` is non-empty, mention those paths in
+     the report's coverage statement as doc files not analyzed.
 
 4. **Report.** Write `texteff-report.md` into TARGET using the template
    below, and give the user a short summary in chat: total tokens,
