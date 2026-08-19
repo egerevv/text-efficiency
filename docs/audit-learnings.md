@@ -4,6 +4,24 @@ One entry per real audit run: what the standard or taxonomy got wrong or
 missed, and what the user overrode. Repeated lessons graduate into
 `skills/context-audit/references/report-standard.md` and bump its version.
 
+## 2026-08-19 — notes-business, Verbose-lens pass (first v1.3 run)
+
+- User feedback drove v1.3: reports should weigh text *quality* (where
+  summarizing only benefits), not just text existence. Added the Verbose
+  type with the proof-of-compression rule.
+- First run validated the lossless discipline in both directions: the
+  largest kept section (826 tokens of dense notes) correctly did NOT
+  flag — every bullet held unique facts/attributions; the real catch was
+  contribution-log cells restating their link targets (187 → 86 tokens
+  demonstrated, 53%).
+- Observation: most Verbose catches so far are really Duplicated-with-
+  extra-words (restating a canonical home). Pure verbosity — wordy text
+  with one home — hasn't appeared yet in these two repos. Watch whether
+  Verbose earns its place as a separate type or folds into Duplicated.
+- The report template needs a stated policy for score-neutral updates:
+  re-issuing under a newer standard changed reducible tokens (80.0k →
+  81.4k) but not the rounded score.
+
 ## 2026-08-19 — notes-business (second dogfood, first standard-v1.1 report)
 
 - The root+docs/ location rule missed ~110 nested .md files — the entire
