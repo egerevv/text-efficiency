@@ -1,4 +1,4 @@
-# texteff Review Standard v1.1
+# texteff Review Standard v1.2
 
 How a context audit presents its results. The taxonomy (in SKILL.md) is the
 analysis method; this standard is the deliverable's contract. Reports stamp
@@ -30,21 +30,22 @@ Rules:
 
 ## Score
 
-Every report carries a score out of 10, shown in the verdict with its
-arithmetic. Two components:
+Every score in a report is out of 10 — components and total alike, one
+unified scale. Shown in the verdict with its arithmetic. Two components:
 
-- **Accuracy (0–5).** Start at 5; subtract 1.5 per verified S1 *root
+- **Accuracy (0–10).** Start at 10; subtract 3 per verified S1 *root
   cause* (a cluster of findings sharing one cause — e.g. four stale
   README sections all describing one deleted feature — counts once).
   Floor 0. Unverified suspicions never reduce Accuracy.
-- **Efficiency (0–5).** `5 × (total tokens − reducible tokens) / total
-  tokens`, where reducible sums the S2/S3 evidence-appendix findings.
+- **Efficiency (0–10).** `10 × (total tokens − reducible tokens) /
+  total tokens`, where reducible sums the S2/S3 evidence-appendix
+  findings.
 
-Score = Accuracy + Efficiency, rounded to the nearest 0.5. Show all
-three numbers: `Score: 5.0/10 (Accuracy 3.5/5 — one verified S1 root
-cause; Efficiency 1.6/5 — 69% reducible)`. The score measures the text,
-not the code or the project's worth — say so when a low score lands on
-a good codebase.
+Score = the average of the two, rounded to the nearest 0.5. Show all
+three numbers: `Score: 6.5/10 (Accuracy 7/10 — one verified S1 root
+cause; Efficiency 5.8/10 — 42% reducible)`. The score measures the
+text, not the code or the project's worth — say so when a low score
+lands on a good codebase.
 
 ## Report shape
 
@@ -70,7 +71,7 @@ Header stamp, verbatim shape:
 
 ```
 # Context Efficiency Report — <repo name>
-texteff v0.1 · report standard v1.1 · tokens: <tiktoken | approximate>
+texteff v0.1 · report standard v1.2 · tokens: <tiktoken | approximate>
 ```
 
 ## Verification labels
@@ -85,8 +86,11 @@ Every finding in the evidence appendix carries one label:
 
 ## Changelog
 
+- **v1.2** (2026-08-19): unified scale — Accuracy and Efficiency are each
+  0–10 (S1 root cause −3; Efficiency ×10); total is their average.
+  Equivalent arithmetic to v1.1, uniform units.
 - **v1.1** (2026-08-19): added the Score section (Accuracy + Efficiency,
-  /10); verdict now includes it.
+  each 0–5 summing to /10); verdict now includes it.
 - **v1** (2026-08-19): initial — severity model, five-part shape,
   verification labels, learning loop.
 
