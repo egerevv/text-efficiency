@@ -1,4 +1,4 @@
-# texteff Review Standard v1
+# texteff Review Standard v1.1
 
 How a context audit presents its results. The taxonomy (in SKILL.md) is the
 analysis method; this standard is the deliverable's contract. Reports stamp
@@ -28,13 +28,31 @@ Rules:
   text is not debt — it appears only under "Leave alone".
 - Within a level, rank by tokens saved per unit of effort.
 
+## Score
+
+Every report carries a score out of 10, shown in the verdict with its
+arithmetic. Two components:
+
+- **Accuracy (0–5).** Start at 5; subtract 1.5 per verified S1 *root
+  cause* (a cluster of findings sharing one cause — e.g. four stale
+  README sections all describing one deleted feature — counts once).
+  Floor 0. Unverified suspicions never reduce Accuracy.
+- **Efficiency (0–5).** `5 × (total tokens − reducible tokens) / total
+  tokens`, where reducible sums the S2/S3 evidence-appendix findings.
+
+Score = Accuracy + Efficiency, rounded to the nearest 0.5. Show all
+three numbers: `Score: 5.0/10 (Accuracy 3.5/5 — one verified S1 root
+cause; Efficiency 1.6/5 — 69% reducible)`. The score measures the text,
+not the code or the project's worth — say so when a low score lands on
+a good codebase.
+
 ## Report shape
 
 Five parts, in this order. The prioritized actions are the deliverable;
 evidence is the appendix.
 
-1. **Verdict** — one sentence: total tokens, reducible tokens and %, and
-   the single most important action.
+1. **Verdict** — one sentence: total tokens, reducible tokens and %,
+   the score with its arithmetic, and the single most important action.
 2. **Prioritized actions** — a numbered, harm-ranked list. Each item:
    the action (imperative), why now (the harm), and an effort estimate.
    Number items across severity levels in one sequence.
@@ -52,7 +70,7 @@ Header stamp, verbatim shape:
 
 ```
 # Context Efficiency Report — <repo name>
-texteff v0.1 · report standard v1 · tokens: <tiktoken | approximate>
+texteff v0.1 · report standard v1.1 · tokens: <tiktoken | approximate>
 ```
 
 ## Verification labels
@@ -64,6 +82,13 @@ Every finding in the evidence appendix carries one label:
   **Required for every S1 finding.** An S1 claim that cannot be verified is
   reported as S2 with `suspected:` and an explicit note of what to check.
 - `suspected:` followed by the reason — allowed for S2/S3 only.
+
+## Changelog
+
+- **v1.1** (2026-08-19): added the Score section (Accuracy + Efficiency,
+  /10); verdict now includes it.
+- **v1** (2026-08-19): initial — severity model, five-part shape,
+  verification labels, learning loop.
 
 ## Learning loop
 
