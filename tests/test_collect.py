@@ -55,7 +55,16 @@ def test_is_doc_file_nested_readme_and_contributing_anywhere():
     assert collect.is_doc_file(root / "pkg" / "README.md", root)
     assert collect.is_doc_file(root / "sub" / "readme.rst", root)
     assert collect.is_doc_file(root / "a" / "b" / "CONTRIBUTING.txt", root)
-    assert not collect.is_doc_file(root / "notes" / "ideas.md", root)
+
+
+def test_is_doc_file_markdown_anywhere_but_txt_rst_by_location():
+    root = Path("/repo")
+    assert collect.is_doc_file(root / "notes" / "ideas.md", root)
+    assert collect.is_doc_file(root / "a" / "b" / "deep.md", root)
+    assert not collect.is_doc_file(root / "systems" / "requirements.txt", root)
+    assert not collect.is_doc_file(root / "pkg" / "notes.rst", root)
+    assert collect.is_doc_file(root / "notes.rst", root)
+    assert collect.is_doc_file(root / "docs" / "notes.txt", root)
 
 
 def test_nested_readme_collected(tmp_path):
@@ -71,13 +80,25 @@ def test_nested_readme_collected(tmp_path):
     assert "sub/readme.rst" in paths
 
 
-def test_nested_non_readme_doc_file_skipped_and_recorded(tmp_path):
+def test_nested_markdown_collected_txt_skipped_and_recorded(tmp_path):
     (tmp_path / "notes").mkdir()
     (tmp_path / "notes" / "ideas.md").write_text("# Ideas\n\nSome idea text.\n")
+    (tmp_path / "notes" / "data.txt").write_text("Loose text file content.\n")
     inv = collect.build_inventory(tmp_path)
     paths = {i["path"] for i in inv["items"]}
-    assert "notes/ideas.md" not in paths
-    assert inv["coverage"]["doc_files_skipped"] == ["notes/ideas.md"]
+    assert "notes/ideas.md" in paths
+    assert "notes/data.txt" not in paths
+    assert inv["coverage"]["doc_files_skipped"] == ["notes/data.txt"]
+
+
+def test_scratch_dirs_never_walked(tmp_path):
+    (tmp_path / ".superpowers" / "sdd").mkdir(parents=True)
+    (tmp_path / ".superpowers" / "sdd" / "brief.md").write_text("# Brief\n\nScratch.\n")
+    (tmp_path / "real.md").write_text("# Real\n\nKept content.\n")
+    inv = collect.build_inventory(tmp_path)
+    paths = {i["path"] for i in inv["items"]}
+    assert paths == {"real.md"}
+    assert inv["coverage"]["doc_files_skipped"] == []
 
 
 def test_extract_python_line_comments():

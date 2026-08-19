@@ -16,9 +16,9 @@ HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)$")
 SKIP_DIRS = {
     ".git", "node_modules", ".venv", "venv", "env", "dist", "build",
     "__pycache__", "target", ".next", ".claude-plugin", "vendor",
+    ".superpowers", ".claude", ".claude-runs",
 }
 DOC_EXTS = {".md", ".rst", ".txt"}
-DOC_ANYWHERE = {"CLAUDE.md", "AGENTS.md"}
 DOC_ANYWHERE_PREFIXES = ("readme", "contributing")
 MAX_FILE_BYTES = 1_000_000
 
@@ -94,13 +94,15 @@ def iter_files(root):
 
 
 def is_doc_file(path, root):
-    """Docs are CLAUDE.md/AGENTS.md anywhere, README*/CONTRIBUTING*
-    (case-insensitive) with a doc extension anywhere, plus other
-    .md/.rst/.txt files at the repo root or under docs/."""
+    """Markdown is documentation anywhere in the tree. .rst/.txt are
+    noisier (requirements.txt, data files), so they count only at the
+    repo root, under docs/, or named README*/CONTRIBUTING*
+    (case-insensitive)."""
     rel = path.relative_to(root)
-    if path.name in DOC_ANYWHERE:
+    ext = path.suffix.lower()
+    if ext == ".md":
         return True
-    if path.suffix.lower() in DOC_EXTS:
+    if ext in DOC_EXTS:
         if path.name.lower().startswith(DOC_ANYWHERE_PREFIXES):
             return True
         return len(rel.parts) == 1 or rel.parts[0] == "docs"
