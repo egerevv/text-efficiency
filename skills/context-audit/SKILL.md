@@ -40,6 +40,15 @@ otherwise /tmp.
    - A comment that restates the adjacent identifiers or an obvious
      implementation is Derivable. When unsure whether a comment is
      Derivable or Constraint, read the code around it.
+   - Verbose is judged on text that passes every other check: flag it
+     ONLY when compression is lossless — every fact, constraint, and
+     nuance preserved (losing color is fine; losing information is not).
+     If you cannot preserve everything, the text is not Verbose — leave
+     it alone. A Verbose finding is never asserted, only demonstrated:
+     write the actual compressed rewrite (for long sections, a
+     representative excerpt) with before/after token counts. No
+     demonstration, no finding. Prioritize the highest-token kept
+     sections for this check.
    - If the inventory shows capped files (`coverage.comment_files_capped`) or `coverage.global_cap_applied` is true,
      analyze what is included and state coverage honestly.
    - If `coverage.doc_files_skipped` is non-empty, mention those paths in
@@ -69,6 +78,7 @@ otherwise /tmp.
 | Instructional | How to run/test/deploy | Keep once; dedupe elsewhere |
 | Duplicated | Same information in more than one place | Consolidate to one home |
 | Stale | Describes behavior or files that no longer exist | Delete or fix (harmful) |
+| Verbose | Full information content survives at materially fewer tokens | Compress (losslessly) |
 
 ## Report format
 

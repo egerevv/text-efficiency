@@ -1,4 +1,4 @@
-# texteff Review Standard v1.2
+# texteff Review Standard v1.3
 
 How a context audit presents its results. The taxonomy (in SKILL.md) is the
 analysis method; this standard is the deliverable's contract. Reports stamp
@@ -71,8 +71,27 @@ Header stamp, verbatim shape:
 
 ```
 # Context Efficiency Report — <repo name>
-texteff v0.1 · report standard v1.2 · tokens: <tiktoken | approximate>
+texteff v0.1 · report standard v1.3 · tokens: <tiktoken | approximate>
 ```
+
+## Verbose findings (proof-of-compression)
+
+A Verbose finding claims the same information fits in materially fewer
+tokens. It is only reportable with a demonstration:
+
+- The evidence appendix entry MUST contain the compressed rewrite (for a
+  long section, a representative excerpt rewritten) and before/after
+  token counts. An asserted ratio with no rewrite is not a finding.
+- The rewrite must be lossless: every fact, constraint, and nuance of the
+  original preserved. Style, voice, and color may be lost; information
+  may not. Text that only compresses lossily is not Verbose.
+- Demonstrated savings join the reducible-token total, so the Efficiency
+  component prices them — there is no separate quality score.
+- Severity: S3 by default; S2 when one section or file wastes thousands
+  of tokens. Prioritized-action entries state the arithmetic and the
+  effort to accept: "Compress X: 900 → 250 tokens, rewrite provided."
+- Extrapolation must be labeled: if the demonstration covers an excerpt,
+  the projected whole-file saving is an estimate — say so.
 
 ## Verification labels
 
@@ -86,6 +105,10 @@ Every finding in the evidence appendix carries one label:
 
 ## Changelog
 
+- **v1.3** (2026-08-19): added Verbose findings — lossless-compression
+  opportunities, reportable only with a demonstrated rewrite and
+  before/after counts; savings feed Efficiency. (User feedback: reports
+  should weigh text quality, not just text existence.)
 - **v1.2** (2026-08-19): unified scale — Accuracy and Efficiency are each
   0–10 (S1 root cause −3; Efficiency ×10); total is their average.
   Equivalent arithmetic to v1.1, uniform units.
